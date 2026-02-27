@@ -1,0 +1,8 @@
+mlx>=0.17
+numpy
+torch
+transformers
+huggingface-hub
+omegaconf
+soundfile
+tqdm

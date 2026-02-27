@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "musicgen-mlx"
+version = "0.1.0"
+description = "Music generation with MusicGen on Apple Silicon (MLX)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "mlx>=0.17",
+    "numpy",
+    "torch",
+    "transformers",
+    "huggingface-hub",
+    "omegaconf",
+    "soundfile",
+    "tqdm",
+]
+
+[project.scripts]
+musicgen-mlx = "generate:main"
+
+[project.urls]
+Repository = "https://github.com/andrade0/musicgen-mlx"
+
+[tool.setuptools.packages.find]
+include = ["audiocraft_mlx*"]
