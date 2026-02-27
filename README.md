@@ -33,19 +33,35 @@ MusicGen is an autoregressive model — it generates audio token by token, so it
 
 ## Quick start
 
+### 1. Set up a Python environment
+
+MusicGen MLX requires **Python 3.10 or later**. We recommend using a dedicated conda environment to avoid dependency conflicts (especially with PyTorch):
+
+```bash
+# Create and activate a conda environment
+conda create -n musicgen python=3.11 -y
+conda activate musicgen
+```
+
+> **No conda?** You can also use `python3 -m venv .venv && source .venv/bin/activate`. Just make sure `python --version` shows 3.10+.
+
+### 2. Install
+
 ```bash
 git clone https://github.com/andrade0/musicgen-mlx.git
 cd musicgen-mlx
 make install
 ```
 
-Now generate music from anywhere on your Mac:
+This installs all dependencies (MLX, PyTorch CPU, Transformers, etc.) and puts the `musicgen-mlx` command in your PATH.
+
+### 3. Generate music
 
 ```bash
 musicgen-mlx "a gentle piano melody with soft strings"
 ```
 
-The first run downloads the model from HuggingFace (~1.2 GB for small, ~6.5 GB for stereo-large). Generated audio opens automatically on macOS.
+The first run downloads the model from HuggingFace (~1.2 GB for small). Generated audio opens automatically on macOS.
 
 > If you see a PATH warning during install, add this to your `~/.zshrc`:
 > ```bash
@@ -165,18 +181,55 @@ The transformer uses RoPE positional embeddings, KV caching, and 4 interleaved c
 - **Stereo models**: HuggingFace EnCodec runs in PyTorch for stereo, wrapped with MLX↔torch conversion at boundaries
 - **No training code**: Inference-only, all batch norm / dropout / weight init stripped out
 
-## Models
+## Choosing a model
 
-| Model | Parameters | Channels | Quality | Status |
-|-------|-----------|----------|---------|--------|
-| `facebook/musicgen-small` | 300M | mono | Good | Working |
-| `facebook/musicgen-medium` | 1.5B | mono | Better | Working |
-| `facebook/musicgen-large` | 3.3B | mono | Best | Working |
-| `facebook/musicgen-stereo-small` | 300M | stereo | Good | Working |
-| `facebook/musicgen-stereo-medium` | 1.5B | stereo | Better | Working |
-| `facebook/musicgen-stereo-large` | 3.3B | stereo | Best | Working |
-| `facebook/musicgen-melody` | 1.5B | mono | — | Not yet (needs ChromaStemConditioner) |
-| `facebook/musicgen-style` | 1.5B | mono | — | Not yet (needs StyleConditioner) |
+All models are hosted on [HuggingFace](https://huggingface.co/facebook) and download automatically on first use. Use the `-m` flag to switch models.
+
+### Available models
+
+| Model | Parameters | Channels | Download size | Quality | Status |
+|-------|-----------|----------|--------------|---------|--------|
+| `facebook/musicgen-small` | 300M | mono | ~1.2 GB | Good | Working |
+| `facebook/musicgen-medium` | 1.5B | mono | ~3.2 GB | Better | Working |
+| `facebook/musicgen-large` | 3.3B | mono | ~6.5 GB | Best | Working |
+| `facebook/musicgen-stereo-small` | 300M | stereo | ~1.2 GB | Good | Working |
+| `facebook/musicgen-stereo-medium` | 1.5B | stereo | ~3.2 GB | Better | Working |
+| `facebook/musicgen-stereo-large` | 3.3B | stereo | ~6.5 GB | Best | Working |
+| `facebook/musicgen-melody` | 1.5B | mono | — | — | Not yet (needs ChromaStemConditioner) |
+| `facebook/musicgen-style` | 1.5B | mono | — | — | Not yet (needs StyleConditioner) |
+
+### Which model should I use?
+
+- **Just trying it out?** Start with `musicgen-small` (the default). It's fast (faster than realtime on M4 Max) and the quality is surprisingly good.
+- **Want better quality?** Use `musicgen-medium` — better musical coherence and richer sound, about 2-3x slower than small.
+- **Best possible quality?** Use `musicgen-large` or `musicgen-stereo-large` — the 3.3B model produces the best results but requires more RAM and patience.
+- **Need stereo output?** Add `stereo-` to any model name. Stereo models produce left/right channel audio instead of mono.
+- **Melody conditioning?** `musicgen-melody` is not yet supported in this port (it requires a ChromaStemConditioner based on Demucs). Contributions welcome!
+
+### Trying different models
+
+```bash
+# Default: small model, fast, good quality
+musicgen-mlx "funky disco groove with slap bass"
+
+# Medium: better quality, still reasonably fast
+musicgen-mlx "funky disco groove with slap bass" -m facebook/musicgen-medium
+
+# Large: best quality, slower
+musicgen-mlx "funky disco groove with slap bass" -m facebook/musicgen-large
+
+# Stereo small: spatial audio, same speed as mono small
+musicgen-mlx "ambient pad with wide reverb" -m facebook/musicgen-stereo-small
+
+# Stereo large: best quality + stereo, slowest
+musicgen-mlx "cinematic orchestral theme" -m facebook/musicgen-stereo-large -d 30
+```
+
+Models are cached in `~/.cache/huggingface/` after the first download. You can pre-download a model without generating anything by running a short generation:
+
+```bash
+musicgen-mlx "test" -m facebook/musicgen-large -d 1
+```
 
 ## Known limitations
 
@@ -193,11 +246,27 @@ Contributions to address any of these are very welcome!
 
 ## Requirements
 
-- **macOS** with Apple Silicon (M1/M2/M3/M4)
-- **Python 3.10+**
-- Dependencies: `mlx`, `numpy`, `torch` (CPU), `transformers`, `huggingface-hub`, `omegaconf`, `soundfile`, `tqdm`
+- **macOS** with Apple Silicon (M1, M2, M3, or M4)
+- **Python 3.10+** (3.11 recommended)
+- **RAM**: 8 GB minimum for small model, 16 GB+ recommended for large models
+- A conda or virtual environment (recommended to avoid dependency conflicts)
 
-> **Note on PyTorch**: PyTorch is used for the T5 text encoder, stereo EnCodec, and initial weight loading. It runs on CPU. A future version may reduce or remove this dependency.
+### Dependencies
+
+Installed automatically by `make install`:
+
+| Package | Why |
+|---------|-----|
+| `mlx` >= 0.17 | Apple's ML framework (GPU acceleration) |
+| `torch` | T5 text encoder + weight loading (CPU only) |
+| `transformers` | HuggingFace model loading |
+| `huggingface-hub` | Model downloads |
+| `numpy` | Array operations |
+| `soundfile` | WAV file I/O |
+| `omegaconf` | Model config parsing |
+| `tqdm` | Progress bars |
+
+> **Note on PyTorch**: PyTorch is only used for the T5 text encoder, stereo EnCodec, and initial weight loading. It runs on CPU — the heavy lifting (transformer + audio decoding) runs on Apple GPU through MLX. A future version may reduce or remove the PyTorch dependency.
 
 ## Project structure
 

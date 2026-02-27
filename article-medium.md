@@ -10,26 +10,77 @@ The project is open source and ready to try: [github.com/andrade0/musicgen-mlx](
 
 ---
 
-## One command to generate music
+## Getting started
+
+You need a Mac with Apple Silicon (M1/M2/M3/M4) and Python 3.10+. I recommend using a dedicated conda environment:
 
 ```bash
+# Create a clean environment
+conda create -n musicgen python=3.11 -y
+conda activate musicgen
+
+# Clone and install
 git clone https://github.com/andrade0/musicgen-mlx.git
 cd musicgen-mlx
 make install
+```
 
+That's it. Now generate music:
+
+```bash
 musicgen-mlx "deep house track with a hypnotic bassline"
 ```
 
-That's it. The model downloads from HuggingFace on first run, and the generated audio opens automatically.
+The model downloads from HuggingFace on first run (~1.2 GB for the small model), and the generated audio opens automatically.
 
-Want better quality? Use the large stereo model:
+## Choosing a model
+
+MusicGen comes in several sizes. All are available through a simple `-m` flag:
+
+| Model | Parameters | Size | Quality | Speed (M4 Max) |
+|:---:|:---:|:---:|:---:|:---:|
+| `facebook/musicgen-small` | 300M | ~1.2 GB | Good | 1.3x realtime |
+| `facebook/musicgen-medium` | 1.5B | ~3.2 GB | Better | ~0.6x realtime |
+| `facebook/musicgen-large` | 3.3B | ~6.5 GB | Best | ~0.3x realtime |
+| `facebook/musicgen-stereo-small` | 300M | ~1.2 GB | Good (stereo) | ~1.2x realtime |
+| `facebook/musicgen-stereo-medium` | 1.5B | ~3.2 GB | Better (stereo) | ~0.5x realtime |
+| `facebook/musicgen-stereo-large` | 3.3B | ~6.5 GB | Best (stereo) | ~0.3x realtime |
+
+The **small** model is the default — fast enough for interactive use. If you want the best quality and don't mind waiting, go for **large** or **stereo-large**. The stereo variants produce left/right channel audio instead of mono, which sounds more natural on headphones.
+
+Two variants are not yet supported: `musicgen-melody` (needs a Demucs-based conditioner to accept a reference melody) and `musicgen-style` (needs an EnCodec-based style conditioner). Both are on the roadmap.
 
 ```bash
+# Quick test with the default small model
+musicgen-mlx "funky disco groove with slap bass"
+
+# Better quality with the medium model
+musicgen-mlx "funky disco groove with slap bass" -m facebook/musicgen-medium
+
+# Best quality, mono
+musicgen-mlx "cinematic orchestral theme" -m facebook/musicgen-large -d 20
+
+# Stereo output (sounds great on headphones)
+musicgen-mlx "ambient pad with wide reverb" -m facebook/musicgen-stereo-small
+
+# Best of everything: stereo + large + 30 seconds
 musicgen-mlx "epic orchestral soundtrack with dramatic strings" \
     -m facebook/musicgen-stereo-large -d 30
 ```
 
-You can also use it from Python:
+Models are cached locally after the first download (~/.cache/huggingface/), so subsequent runs start instantly.
+
+You can also tweak the sampling parameters — higher temperature means more creative/unpredictable output, lower means more conservative:
+
+```bash
+# More experimental output
+musicgen-mlx "jazz piano trio improvising" --temperature 1.2 --top-k 500
+
+# More focused, predictable output
+musicgen-mlx "classical piano sonata" --temperature 0.8 --top-k 100
+```
+
+### Use from Python
 
 ```python
 from audiocraft_mlx.models.musicgen import MusicGen
@@ -114,21 +165,6 @@ This is an early release. Here's what could be improved:
 - **Audio-to-audio** — Condition on an input audio clip (not just text).
 
 If any of this interests you, check out the repo: [github.com/andrade0/musicgen-mlx](https://github.com/andrade0/musicgen-mlx)
-
-## Supported models
-
-All the standard MusicGen variants work:
-
-| Model | Status |
-|-------|--------|
-| `facebook/musicgen-small` (300M) | Working |
-| `facebook/musicgen-medium` (1.5B) | Working |
-| `facebook/musicgen-large` (3.3B) | Working |
-| `facebook/musicgen-stereo-small` | Working |
-| `facebook/musicgen-stereo-medium` | Working |
-| `facebook/musicgen-stereo-large` | Working |
-| `facebook/musicgen-melody` | Not yet |
-| `facebook/musicgen-style` | Not yet |
 
 ## This is part of a bigger project
 
